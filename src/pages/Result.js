@@ -450,10 +450,24 @@ export default function Result() {
       const userId = authData.user.id;
       await saveResult(userId, code, animal, group);
 
-      // 4. Move to dashboard
+      // 4. Cache locally so animalEmoji survives page navigation
+      localStorage.setItem(
+        'hymlSignup',
+        JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          group,
+          animal,
+          animalEmoji: emoji,
+          code,
+          joinedAt: new Date().toISOString(),
+        })
+      );
+
+      // 5. Move to dashboard
       setShowSignup(false);
       navigate('/dashboard', {
-        state: { group, userName: trimmedName, email: trimmedEmail },
+        state: { group, animalEmoji: emoji, userName: trimmedName, email: trimmedEmail },
       });
 
     } catch (err) {

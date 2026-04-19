@@ -661,7 +661,12 @@ function IconAttend() {
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const myGroup = location.state?.group || 'Guardians';
+  const myGroup = location.state?.group || (() => {
+    try { return JSON.parse(localStorage.getItem('hymlSignup') || '{}').group || 'Guardians'; } catch { return 'Guardians'; }
+  })();
+  const myAnimalEmoji = location.state?.animalEmoji || (() => {
+    try { return JSON.parse(localStorage.getItem('hymlSignup') || '{}').animalEmoji || null; } catch { return null; }
+  })();
 
   const [leaderboard, setLeaderboard] = useState(null);
   const [events, setEvents]           = useState(null);
@@ -734,9 +739,9 @@ export default function Dashboard() {
           <div
             style={{ ...styles.groupOrb, background: myMeta.bg, borderColor: myMeta.border, cursor: 'pointer' }}
             title="My Profile"
-            onClick={() => navigate('/mypage', { state: { group: myGroup } })}
+            onClick={() => navigate('/mypage', { state: { group: myGroup, animalEmoji: myAnimalEmoji } })}
           >
-            <span style={{ fontSize: '28px' }}>{myMeta.emoji}</span>
+            <span style={{ fontSize: '28px' }}>{myAnimalEmoji || myMeta.emoji}</span>
           </div>
           <div>
             <p style={styles.sidebarGroupName}>{myGroup}</p>
@@ -786,9 +791,9 @@ export default function Dashboard() {
           <div
             style={{ ...styles.myGroupBadge, background: myMeta.bg, borderColor: myMeta.border, color: myMeta.color, cursor: 'pointer' }}
             title="Go to My Profile"
-            onClick={() => navigate('/mypage', { state: { group: myGroup } })}
+            onClick={() => navigate('/mypage', { state: { group: myGroup, animalEmoji: myAnimalEmoji } })}
           >
-            {myMeta.emoji} {myGroup}
+            {myAnimalEmoji || myMeta.emoji} {myGroup}
           </div>
         </div>
 

@@ -81,8 +81,10 @@ function IconAttend() {
 export default function MyPage() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const group     = location.state?.group || 'Guardians';
-  const userId    = location.state?.userId || null;
+  const _saved = (() => { try { return JSON.parse(localStorage.getItem('hymlSignup') || '{}'); } catch { return {}; } })();
+  const group       = location.state?.group       || _saved.group       || 'Guardians';
+  const animalEmoji = location.state?.animalEmoji || _saved.animalEmoji || null;
+  const userId      = location.state?.userId || null;
 
   const meta = GROUP_META[group] || GROUP_META.Guardians;
 
@@ -130,7 +132,7 @@ export default function MyPage() {
         <div style={styles.sidebarLogo} onClick={() => navigate('/')}>HYML</div>
         <div style={styles.sidebarGroup}>
           <div style={{ ...styles.groupOrb, background: meta.bg, borderColor: meta.border }}>
-            <span style={{ fontSize: '28px' }}>{meta.emoji}</span>
+            <span style={{ fontSize: '28px' }}>{animalEmoji || meta.emoji}</span>
           </div>
           <div>
             <p style={styles.sidebarGroupName}>{group}</p>
@@ -151,7 +153,7 @@ export default function MyPage() {
                 color: 'rgba(200,230,255,0.55)',
                 borderLeft: '2px solid transparent',
               }}
-              onClick={() => navigate(item.path, { state: { group } })}
+              onClick={() => navigate(item.path, { state: { group, animalEmoji } })}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -176,7 +178,7 @@ export default function MyPage() {
           {/* ── Profile card ── */}
           <div style={{ ...styles.profileCard, borderColor: meta.border, animation: 'fadeUp 0.5s ease both' }}>
             <div style={{ ...styles.avatarOrb, background: meta.bg, borderColor: meta.border, animation: 'pulseRing 3s ease infinite' }}>
-              <span style={styles.avatarEmoji}>{meta.emoji}</span>
+              <span style={styles.avatarEmoji}>{animalEmoji || meta.emoji}</span>
             </div>
             <div style={styles.profileInfo}>
               <div style={{ ...styles.groupTag, background: meta.bg, borderColor: meta.border, color: meta.color }}>

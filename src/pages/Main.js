@@ -302,6 +302,14 @@ export default function Main() {
         setAuthErr(error.message);
       } else {
         setModal(false);
+        let savedGroup = 'Guardians';
+        let savedAnimalEmoji = null;
+        try {
+          const saved = JSON.parse(localStorage.getItem('hymlSignup') || '{}');
+          if (saved.group) savedGroup = saved.group;
+          if (saved.animalEmoji) savedAnimalEmoji = saved.animalEmoji;
+        } catch {}
+        navigate('/dashboard', { state: { group: savedGroup, animalEmoji: savedAnimalEmoji } });
       }
     } finally {
       setAuthBusy(false);

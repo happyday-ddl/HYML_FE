@@ -2,6 +2,103 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scoreQuiz } from '../api';
 
+function OceanOrbSVG() {
+  return (
+    <svg width="220" height="220" viewBox="0 0 240 240" fill="none">
+      <defs>
+        <radialGradient id="qSkyGrad" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#0a3d6b" />
+          <stop offset="100%" stopColor="#020e1f" />
+        </radialGradient>
+        <radialGradient id="qDeepGrad" cx="50%" cy="80%" r="60%">
+          <stop offset="0%" stopColor="#0d4f8c" />
+          <stop offset="100%" stopColor="#020b18" />
+        </radialGradient>
+        <clipPath id="qOrbClip">
+          <circle cx="120" cy="120" r="116" />
+        </clipPath>
+        <style>{`
+          @keyframes qWave1 {
+            0%,100% { d: path("M0 128 C30 114 60 142 90 128 C120 114 150 142 180 128 C210 114 230 128 240 128 L240 240 L0 240 Z"); }
+            50%      { d: path("M0 136 C30 150 60 122 90 136 C120 150 150 122 180 136 C210 150 230 136 240 136 L240 240 L0 240 Z"); }
+          }
+          @keyframes qWave2 {
+            0%,100% { d: path("M0 148 C40 134 80 162 120 148 C160 134 200 162 240 148 L240 240 L0 240 Z"); }
+            50%      { d: path("M0 156 C40 170 80 142 120 156 C160 170 200 142 240 156 L240 240 L0 240 Z"); }
+          }
+          @keyframes qWave3 {
+            0%,100% { d: path("M0 168 C50 154 100 182 150 168 C180 158 210 174 240 168 L240 240 L0 240 Z"); }
+            50%      { d: path("M0 174 C50 188 100 160 150 174 C180 184 210 168 240 174 L240 240 L0 240 Z"); }
+          }
+          @keyframes qGlowPulse {
+            0%,100% { opacity: 0.55; }
+            50%      { opacity: 0.85; }
+          }
+          @keyframes qFishFloat {
+            0%   { transform: translateX(-20px); }
+            100% { transform: translateX(260px); }
+          }
+          @keyframes qFishFloat2 {
+            0%   { transform: translateX(260px) scaleX(-1); }
+            100% { transform: translateX(-20px) scaleX(-1); }
+          }
+          @keyframes qBubbleRise {
+            0%   { transform: translateY(0); opacity:0.7; }
+            100% { transform: translateY(-80px); opacity:0; }
+          }
+        `}</style>
+      </defs>
+      <g clipPath="url(#qOrbClip)">
+        <rect width="240" height="240" fill="url(#qDeepGrad)" />
+        <rect width="240" height="128" fill="url(#qSkyGrad)" />
+        {[[22,18],[55,10],[90,26],[130,8],[165,22],[198,12],[215,35],[40,40]].map(([x,y],i) => (
+          <circle key={i} cx={x} cy={y} r="1.2" fill="white" opacity={0.4 + (i%3)*0.2} />
+        ))}
+        <circle cx="178" cy="36" r="18" fill="#c8e6f5" opacity="0.08" />
+        <circle cx="178" cy="36" r="12" fill="#d0eaf8" opacity="0.15" />
+        <circle cx="178" cy="36" r="7"  fill="#e8f4fd" opacity="0.55" />
+        {[80,100,120,140,160].map((x,i) => (
+          <rect key={i} x={x-4} y="128" width="8" height="112"
+            fill="rgba(72,202,228,0.06)"
+            transform={`rotate(${(i-2)*5} ${x} 128)`}
+            style={{ animation: `qGlowPulse ${2+i*0.4}s ${i*0.3}s ease-in-out infinite` }}
+          />
+        ))}
+        <path d="M0 168 C50 154 100 182 150 168 C180 158 210 174 240 168 L240 240 L0 240 Z"
+          fill="#083a6e" opacity="0.9" style={{ animation: 'qWave3 4.2s ease-in-out infinite' }} />
+        <path d="M0 148 C40 134 80 162 120 148 C160 134 200 162 240 148 L240 240 L0 240 Z"
+          fill="#0a4f8a" opacity="0.92" style={{ animation: 'qWave2 3.6s ease-in-out infinite' }} />
+        <path d="M0 128 C30 114 60 142 90 128 C120 114 150 142 180 128 C210 114 230 128 240 128 L240 240 L0 240 Z"
+          fill="#1565c0" opacity="0.9" style={{ animation: 'qWave1 3s ease-in-out infinite' }} />
+        <path d="M0 128 C30 114 60 142 90 128 C120 114 150 142 180 128 C210 114 230 128 240 128"
+          stroke="rgba(144,224,239,0.65)" strokeWidth="2" fill="none"
+          style={{ animation: 'qWave1 3s ease-in-out infinite' }} />
+        {[[65,200],[105,185],[148,196],[185,180]].map(([x,y],i) => (
+          <circle key={i} cx={x} cy={y} r={2.5 + i} fill="none"
+            stroke="rgba(144,224,239,0.4)" strokeWidth="1"
+            style={{ animation: `qBubbleRise ${2+i*0.6}s ${i*0.8}s ease-in infinite` }}
+          />
+        ))}
+        <g style={{ animation: 'qFishFloat 8s 0s linear infinite' }}>
+          <ellipse cx="30" cy="162" rx="9" ry="4" fill="rgba(72,202,228,0.5)" />
+          <path d="M21 162 L14 157 L14 167 Z" fill="rgba(72,202,228,0.5)" />
+          <circle cx="37" cy="160" r="2" fill="rgba(255,255,255,0.6)" />
+        </g>
+        <g style={{ animation: 'qFishFloat2 11s 2s linear infinite' }}>
+          <ellipse cx="190" cy="175" rx="7" ry="3.5" fill="rgba(100,220,200,0.45)" />
+          <path d="M197 175 L204 171 L204 179 Z" fill="rgba(100,220,200,0.45)" />
+        </g>
+        <ellipse cx="120" cy="240" rx="130" ry="22" fill="#041020" opacity="0.8" />
+        {[[50,228],[95,232],[150,230],[195,226]].map(([x,y],i) => (
+          <circle key={i} cx={x} cy={y} r={3+i} fill={['#1a472a','#2d6a4f','#1a472a','#163a2a'][i]} opacity="0.9" />
+        ))}
+        <circle cx="120" cy="120" r="116" stroke="rgba(72,202,228,0.18)" strokeWidth="2" fill="none" />
+        <circle cx="120" cy="120" r="110" stroke="rgba(0,180,216,0.08)" strokeWidth="6" fill="none" />
+      </g>
+    </svg>
+  );
+}
+
 const QUESTIONS = [
   // Dimension 1: Deep (A) vs Reef (B)
   { id: 1,  text: 'After a long day you prefer to…',                        a: 'Recharge alone',                   b: 'Hang out with friends' },
@@ -71,7 +168,7 @@ export default function Quiz() {
   if (loading) {
     return (
       <div style={styles.loadingPage}>
-        <div style={styles.loadingOrb}>🌊</div>
+        <div style={styles.loadingOrb}><OceanOrbSVG /></div>
         <p style={styles.loadingText}>Reading the currents…</p>
         <p style={styles.loadingSubText}>Matching your ocean personality</p>
       </div>
@@ -274,10 +371,9 @@ const styles = {
     color: '#e8f4fd',
   },
   loadingOrb: {
-    fontSize: '80px',
-    animation: 'floatSlow 3s ease-in-out infinite',
     marginBottom: '32px',
     filter: 'drop-shadow(0 0 30px rgba(72,202,228,0.5))',
+    animation: 'floatSlow 3s ease-in-out infinite',
   },
   loadingText: {
     fontSize: '22px',
