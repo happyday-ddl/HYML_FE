@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../supabase';
+import { saveResult } from '../api';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -404,7 +406,7 @@ export default function Result() {
     setSignupForm(prev => ({ ...prev, [name]: value }));
   }
 
-  function handleSignupSubmit(e) {
+  async function handleSignupSubmit(e) {
     e.preventDefault();
 
     const trimmedName = signupForm.name.trim();
@@ -427,23 +429,38 @@ export default function Result() {
     }
 
     try {
-      localStorage.setItem(
-        'hymlSignup',
-        JSON.stringify({
-          name: trimmedName,
-          email: trimmedEmail,
-          group,
-          animal,
-          code,
-          joinedAt: new Date().toISOString(),
-        })
-      );
-    } catch {}
+      // 1. Try to sign up the user
+      let { data: authData, error: authError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password: trimmedPassword,
+        options: { data: { name: trimmedName } }
+      });
 
-    setShowSignup(false);
-    navigate('/dashboard', {
-      state: { group, userName: trimmedName, email: trimmedEmail },
-    });
+      // 2. If they already exist, log them in instead
+      if (authError && authError.message.includes('already registered')) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password: trimmedPassword,
+        });
+        if (signInError) throw signInError;
+        authData = signInData;
+      } else if (authError) {
+        throw authError;
+      }
+
+      // 3. Save their animal result to the backend profiles table
+      const userId = authData.user.id;
+      await saveResult(userId, code, animal, group);
+
+      // 4. Move to dashboard
+      setShowSignup(false);
+      navigate('/dashboard', {
+        state: { group, userName: trimmedName, email: trimmedEmail },
+      });
+
+    } catch (err) {
+      setSignupError(err.message);
+    }
   }
 
   return (

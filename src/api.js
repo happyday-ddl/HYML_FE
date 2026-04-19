@@ -22,6 +22,16 @@ export async function getEvents() {
   return res.json();
 }
 
+export async function saveResult(userId, code, animal, group) {
+  const res = await fetch(`${BASE_URL}/profiles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, code, animal, group }),
+  });
+  if (!res.ok) throw new Error(`Save result error: ${res.status}`);
+  return res.json();
+}
+
 export async function attendEvent(code) {
   const res = await fetch(`${BASE_URL}/events/attend`, {
     method: 'POST',
