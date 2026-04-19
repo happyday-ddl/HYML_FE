@@ -551,6 +551,13 @@ export default function Result() {
         return;
       }
 
+      // Supabase silently "succeeds" for existing emails with identities:[]
+      // to prevent email enumeration — treat this as a duplicate too
+      if (!authData?.user?.id || (authData.user.identities && authData.user.identities.length === 0)) {
+        setSignupError("This email is already registered. Please use a different email.");
+        return;
+      }
+
       // 2. Save their animal result to the backend profiles table
       const userId = authData.user.id;
       await saveResult(trimmedName, userId, code, animal, group);
