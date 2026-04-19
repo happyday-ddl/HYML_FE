@@ -27,6 +27,39 @@ const TYPE_META = {
   Community:  { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', icon: '🤝' },
 };
 
+// ── Mission Recommendation Scoring ──────────────────────────────────────────
+const GROUP_AFFINITY = {
+  Hunters:   ['cleanup', 'collection', 'remove', 'beach', 'drive', 'coastal'],
+  Wanderers: ['guide', 'education', 'learn', 'visitors', 'community', 'outreach', 'day'],
+  Guardians: ['restoration', 'protect', 'conservation', 'kelp', 'survey', 'monitor', 'workshop'],
+  Builders:  ['workshop', 'training', 'research', 'data', 'build', 'design', 'lab'],
+};
+
+function scoreMission(mission, { group, strengths, description, animal }) {
+  const haystack = `${mission.title} ${mission.description}`.toLowerCase();
+  let score = 0;
+
+  // Strength keyword matching (up to 45 pts)
+  const strengthWords = (strengths || []).flatMap(s => s.toLowerCase().split(/\s+/));
+  strengthWords.forEach(w => { if (w.length > 3 && haystack.includes(w)) score += 15; });
+  score = Math.min(score, 45);
+
+  // Group affinity (up to 35 pts)
+  (GROUP_AFFINITY[group] || []).forEach(w => { if (haystack.includes(w)) score += 10; });
+  score = Math.min(score, 80);
+
+  // Animal keyword (up to 20 pts)
+  const animalWord = (animal || '').toLowerCase().split(' ')[0];
+  if (animalWord && animalWord.length > 2 && haystack.includes(animalWord)) score += 20;
+
+  // Description keyword overlap (up to 15 pts)
+  const descWords = (description || '').toLowerCase().split(/\W+/).filter(w => w.length > 5);
+  const unique = [...new Set(descWords)].slice(0, 15);
+  unique.forEach(w => { if (haystack.includes(w)) score += 3; });
+
+  return Math.min(score, 100);
+}
+
 function IconMissions() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -89,7 +122,7 @@ export default function MyPage() {
         const uid = user?.id || location.state?.userId || null;
         const data = await getUserMissions(uid);
         const list = data?.data || data?.missions || (Array.isArray(data) ? data : null);
-        setMissions(list?.filter(m => m.attended) || []);
+        setMissions(list || []);
       } catch {
         setMissions([]);
       } finally {
@@ -139,7 +172,14 @@ export default function MyPage() {
     return () => obs.disconnect();
   }, []);
 
-  const displayMissions = missions || [];
+  const displayMissions = missions?.filter(m => m.attended) || [];
+  const recommendedMissions = missions
+    ? missions
+        .filter(m => !m.attended)
+        .map(m => ({ ...m, matchScore: scoreMission(m, { group, strengths: animalStrengths, description: animalDesc, animal: animalName }) }))
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 3)
+    : [];
   const totalPoints = displayMissions.reduce((sum, m) => sum + (m.points || 0), 0);
 
   return (
@@ -294,6 +334,49 @@ export default function MyPage() {
                 );
               })}
             </div>
+          )}
+
+          {/* ── Recommended Missions ── */}
+          {!loading && recommendedMissions.length > 0 && (
+            <>
+              <div style={{ ...styles.sectionHeader, marginTop: '32px' }}>
+                <h2 style={styles.sectionTitle}>Recommended for You</h2>
+                <span style={{ ...styles.missionCount, background: meta.bg, borderColor: meta.border, color: meta.color }}>
+                  AI
+                </span>
+              </div>
+              <p style={styles.recSubtitle}>Missions matched to your {animalName || group} personality</p>
+              <div style={styles.missionList}>
+                {recommendedMissions.map((m, i) => (
+                  <div
+                    key={m.id || i}
+                    style={{
+                      ...styles.missionCard,
+                      borderColor: meta.border,
+                      animation: `fadeUp 0.45s ${0.1 + i * 0.07}s ease both`,
+                      opacity: 0,
+                      animationFillMode: 'forwards',
+                    }}
+                  >
+                    <div style={{ ...styles.typeIcon, background: meta.bg, color: meta.color }}>
+                      <span style={{ fontSize: '18px' }}>✦</span>
+                    </div>
+                    <div style={styles.missionInfo}>
+                      <p style={styles.missionTitle}>{m.title}</p>
+                      <p style={styles.missionOrg}>{m.description || ''}</p>
+                    </div>
+                    <div style={styles.missionRight}>
+                      <span style={{ ...styles.matchBadge, background: meta.bg, color: meta.color, borderColor: meta.border }}>
+                        {m.matchScore}% match
+                      </span>
+                      <span style={{ ...styles.pointsBadge, background: 'rgba(0,20,50,0.5)', color: 'rgba(144,200,230,0.6)', borderColor: 'rgba(72,202,228,0.1)', fontSize: '12px' }}>
+                        +{m.points} pts
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
           </div>{/* end left col */}
 
@@ -1019,6 +1102,19 @@ const styles = {
     fontSize: '11px',
     color: '#34d399',
     fontWeight: 600,
+  },
+
+  recSubtitle: {
+    fontSize: '13px',
+    color: 'rgba(144,200,230,0.45)',
+    margin: '-8px 0 14px',
+  },
+  matchBadge: {
+    fontSize: '12px',
+    fontWeight: 800,
+    padding: '3px 10px',
+    borderRadius: '10px',
+    border: '1px solid',
   },
 
   /* Loading */
