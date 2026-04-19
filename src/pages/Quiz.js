@@ -194,9 +194,14 @@ function localScore(answers) {
   const dim = (start) => {
     const slice = answers.slice(start, start + 4);
     const aCount = slice.filter(x => x === 'A').length;
-    return aCount >= 2 ? 'A' : 'B';
+    
+    // Tie-breaker
+    if (aCount === 2) {
+      return slice[0];
+    }
+    
+    return aCount > 2 ? 'A' : 'B';
   };
-
   // 1. Calculate the raw letters
   const d1 = dim(0) === 'A' ? 'D' : 'R';  // Deep vs Reef
   const d2 = dim(4) === 'A' ? 'C' : 'T';  // Current vs Tide
