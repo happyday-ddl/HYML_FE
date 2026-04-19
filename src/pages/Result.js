@@ -563,30 +563,19 @@ export default function Result() {
 
         <p style={s.descText}>{desc}</p>
 
-        {joined ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <div style={{
-              padding: '12px 28px', borderRadius: '50px',
-              background: colors.bg, border: `1px solid ${colors.primary}55`,
-              color: colors.secondary, fontSize: '15px', fontWeight: 600,
-            }}>
-              ✓ Welcome to the {group}, {joinedUser}!
-            </div>
-            <button
-              style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-              onClick={() => navigate('/dashboard', { state: { group, userName: joinedUser } })}
-            >
-              Go to Dashboard &nbsp;→
-            </button>
+        {joined && (
+          <div style={{
+            padding: '12px 28px', borderRadius: '50px',
+            background: colors.bg, border: `1px solid ${colors.primary}55`,
+            color: colors.secondary, fontSize: '15px', fontWeight: 600,
+          }}>
+            ✓ Welcome to the {group}, {joinedUser}!
           </div>
-        ) : (
-          <button
-            style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-            onClick={openSignup}
-          >
-            Join the {group} &nbsp;→
-          </button>
         )}
+
+        <p style={{ fontSize: '13px', color: 'rgba(150,200,240,0.45)', marginTop: joined ? '8px' : '0' }}>
+          Scroll to explore your ocean ↓
+        </p>
       </section>
 
       {/* ── Personality divider ── */}
@@ -607,7 +596,7 @@ export default function Result() {
       {/* ── Divider ── */}
       <div style={s.divider}>
         <div style={s.dividerLine} />
-        <span style={s.dividerText}>Live Argo Float Data</span>
+        <span style={s.dividerText}>Your Animal's Real Ocean</span>
         <div style={s.dividerLine} />
       </div>
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { scoreQuiz } from '../api';
+import { ARGOVIS_URL } from '../argoShared';
 
 function OceanOrbSVG() {
   return (
@@ -131,6 +132,44 @@ export default function Quiz() {
   const [loading, setLoading] = useState(false);
   const [error] = useState(null);
   const [animating, setAnimating] = useState(false);
+  const [avgSST, setAvgSST] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    (async () => {
+      try {
+        const res = await fetch(ARGOVIS_URL, { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('non-200');
+        const raw = await res.json();
+        if (!cancelled && Array.isArray(raw) && raw.length > 0) {
+          const sstList = raw.map(p => {
+            if (Array.isArray(p.measurements)) {
+              const surf = p.measurements.find(m => m.pres < 20);
+              return surf?.temp ?? null;
+            }
+            if (Array.isArray(p.data) && Array.isArray(p.data_info?.[0])) {
+              const cols = p.data_info[0];
+              const pi = cols.indexOf('pres'), ti = cols.indexOf('temp');
+              if (pi >= 0 && ti >= 0) {
+                const surf = p.data.find(r => r[pi] < 20);
+                return surf?.[ti] ?? null;
+              }
+            }
+            return null;
+          }).filter(t => t != null);
+          if (sstList.length && !cancelled) {
+            setAvgSST((sstList.reduce((a, b) => a + b, 0) / sstList.length).toFixed(1));
+          }
+        }
+      } catch {
+        clearTimeout(timer);
+      }
+    })();
+    return () => { cancelled = true; controller.abort(); };
+  }, []);
 
   const q = QUESTIONS[current];
   const progress = ((current) / QUESTIONS.length) * 100;
@@ -183,7 +222,14 @@ export default function Quiz() {
       <div style={styles.header}>
         <span style={styles.logo} onClick={() => navigate('/')}>HYML</span>
         <div style={styles.dimLabel}>{DIM_LABELS[dimIndex]}</div>
-        <span style={styles.counter}>{current + 1} / {QUESTIONS.length}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {avgSST != null && (
+            <span style={styles.sstBadge}>
+              🌡 California Current: {avgSST}°C
+            </span>
+          )}
+          <span style={styles.counter}>{current + 1} / {QUESTIONS.length}</span>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -413,6 +459,15 @@ const styles = {
     color: 'rgba(180,220,255,0.55)',
     fontWeight: 600,
     fontVariantNumeric: 'tabular-nums',
+  },
+  sstBadge: {
+    fontSize: '11px', fontWeight: 600, letterSpacing: '0.3px',
+    color: 'rgba(72,202,228,0.75)',
+    background: 'rgba(0,100,160,0.18)',
+    border: '1px solid rgba(72,202,228,0.2)',
+    borderRadius: '20px',
+    padding: '5px 12px',
+    whiteSpace: 'nowrap',
   },
   progressTrack: {
     position: 'relative',
