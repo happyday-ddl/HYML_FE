@@ -302,6 +302,14 @@ export default function Main() {
         setAuthErr(error.message);
       } else {
         setModal(false);
+        let savedGroup = 'Guardians';
+        let savedAnimalEmoji = null;
+        try {
+          const saved = JSON.parse(localStorage.getItem('hymlSignup') || '{}');
+          if (saved.group) savedGroup = saved.group;
+          if (saved.animalEmoji) savedAnimalEmoji = saved.animalEmoji;
+        } catch {}
+        navigate('/dashboard', { state: { group: savedGroup, animalEmoji: savedAnimalEmoji } });
       }
     } finally {
       setAuthBusy(false);
@@ -352,7 +360,7 @@ export default function Main() {
               <span style={styles.navLink} onClick={handleSignOut}>Sign Out</span>
             </>
           ) : (
-            <span style={styles.navLink} onClick={() => openModal('signin')}>Sign In</span>
+            <span style={styles.navLink} onClick={() => openModal('signin')}>Log In</span>
           )}
 
           <span style={styles.navLink} onClick={() => scrollTo(footerRef)}>Contact</span>
@@ -483,74 +491,96 @@ export default function Main() {
       {modal && (
         <div style={styles.modalOverlay} onClick={() => setModal(false)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            {/* Tabs */}
-            <div style={styles.modalTabs}>
-              {['signin', 'signup'].map(t => (
+
+            {tab === 'signup' ? (
+              /* ── Quiz prompt (Sign Up) ── */
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+                  <div style={{
+                    width: '180px', height: '180px', borderRadius: '50%',
+                    background: 'radial-gradient(circle at 35% 35%, rgba(0,150,200,0.22), rgba(0,30,80,0.65))',
+                    border: '1px solid rgba(72,202,228,0.22)',
+                    boxShadow: '0 0 60px rgba(0,150,200,0.18), inset 0 0 40px rgba(0,100,160,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', flexShrink: 0,
+                  }}>
+                    <div style={{ transform: 'scale(0.75)', transformOrigin: 'center' }}>
+                      <OceanOrbSVG />
+                    </div>
+                  </div>
+                </div>
+                <h3 style={{ ...styles.modalTitle, textAlign: 'center', marginBottom: '12px' }}>
+                  Haven't taken the quiz yet?
+                </h3>
+                <p style={{ fontSize: '14px', color: 'rgba(180,220,255,0.6)', textAlign: 'center', lineHeight: 1.7, marginBottom: '32px' }}>
+                  Discover your ocean personality first.<br />
+                  Your result will place you in the right group —<br />
+                  then you can create your account!
+                </p>
                 <button
-                  key={t}
-                  style={{
-                    ...styles.modalTab,
-                    ...(tab === t ? styles.modalTabActive : {}),
-                  }}
-                  onClick={() => { setTab(t); setAuthErr(''); }}
+                  style={{ ...styles.authBtn, width: 'fit-content', padding: '14px 32px', display: 'block', margin: '0 auto 16px' }}
+                  onClick={() => { setModal(false); navigate('/quiz'); }}
                 >
-                  {t === 'signin' ? 'Sign In' : 'Sign Up'}
+                  Take the Quiz →
                 </button>
-              ))}
-            </div>
+                <p style={styles.modalSwitch}>
+                  Already have an account?{' '}
+                  <span
+                    style={{ color: '#48cae4', cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => { setTab('signin'); setAuthErr(''); }}
+                  >
+                    Log in
+                  </span>
+                </p>
+              </>
+            ) : (
+              /* ── Log In form ── */
+              <>
+                <h3 style={styles.modalTitle}>Welcome</h3>
 
-            <h3 style={styles.modalTitle}>
-              {tab === 'signin' ? 'Welcome back' : 'Join the ocean'}
-            </h3>
-            <p style={styles.modalSub}>
-              {tab === 'signin'
-                ? 'Sign in to track your missions and echo points.'
-                : 'Create an account to join your OBTI group.'}
-            </p>
+                <form onSubmit={handleAuth} style={styles.modalForm}>
+                  <label style={styles.inputLabel}>Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    style={styles.input}
+                  />
 
-            <form onSubmit={handleAuth} style={styles.modalForm}>
-              <label style={styles.inputLabel}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                style={styles.input}
-              />
+                  <label style={styles.inputLabel}>Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    style={styles.input}
+                  />
 
-              <label style={styles.inputLabel}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={styles.input}
-              />
+                  {authErr && <p style={styles.authError}>{authErr}</p>}
 
-              {authErr && <p style={styles.authError}>{authErr}</p>}
+                  <button
+                    type="submit"
+                    disabled={authBusy}
+                    style={{ ...styles.authBtn, opacity: authBusy ? 0.6 : 1 }}
+                  >
+                    {authBusy ? 'Please wait…' : 'Log In'}
+                  </button>
+                </form>
 
-              <button
-                type="submit"
-                disabled={authBusy}
-                style={{ ...styles.authBtn, opacity: authBusy ? 0.6 : 1 }}
-              >
-                {authBusy
-                  ? 'Please wait…'
-                  : tab === 'signin' ? 'Sign In' : 'Create Account'}
-              </button>
-            </form>
-
-            <p style={styles.modalSwitch}>
-              {tab === 'signin' ? "Don't have an account? " : 'Already have an account? '}
-              <span
-                style={{ color: '#48cae4', cursor: 'pointer', fontWeight: 600 }}
-                onClick={() => { setTab(tab === 'signin' ? 'signup' : 'signin'); setAuthErr(''); }}
-              >
-                {tab === 'signin' ? 'Sign up' : 'Sign in'}
-              </span>
-            </p>
+                <p style={styles.modalSwitch}>
+                  Don't have an account?{' '}
+                  <span
+                    style={{ color: '#48cae4', cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => { setTab('signup'); setAuthErr(''); }}
+                  >
+                    Sign up
+                  </span>
+                </p>
+              </>
+            )}
 
             <button style={styles.modalClose} onClick={() => setModal(false)}>✕</button>
           </div>
@@ -732,7 +762,7 @@ const styles = {
     color: '#90e0ef',
   },
   modalTitle: {
-    fontSize: '22px', fontWeight: 800, color: '#e8f4fd', marginBottom: '8px',
+    fontSize: '22px', fontWeight: 800, color: '#e8f4fd', marginBottom: '32px',
   },
   modalSub: {
     fontSize: '13px', color: 'rgba(180,220,255,0.55)', lineHeight: 1.6, marginBottom: '28px',
