@@ -304,6 +304,23 @@ export default function Result() {
   const [status,   setStatus]   = useState('loading'); // 'loading' | 'live' | 'fallback'
   const [visible,  setVisible]  = useState(false);
   const [selected, setSelected] = useState(0); // which float's profile to show
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupForm, setSignupForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem('hymlSignup');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || '',
+          email: parsed.email || '',
+          password: '',
+        };
+      }
+    } catch {}
+
+    return { name: '', email: '', password: '' };
+  });
+  const [signupError, setSignupError] = useState('');
 
   const result  = location.state?.result;
   const group   = result?.group   || 'Guardians';
@@ -370,6 +387,63 @@ export default function Result() {
   const profileFloat = displayFloats.reduce((best, f) =>
     (f.profile.length > (best?.profile.length ?? 0)) ? f : best, null);
 
+  function openSignup() {
+    setSignupError('');
+    setShowSignup(true);
+  }
+
+  function closeSignup() {
+    setSignupError('');
+    setShowSignup(false);
+  }
+
+  function handleSignupChange(e) {
+    const { name, value } = e.target;
+    setSignupForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  function handleSignupSubmit(e) {
+    e.preventDefault();
+
+    const trimmedName = signupForm.name.trim();
+    const trimmedEmail = signupForm.email.trim();
+    const trimmedPassword = signupForm.password.trim();
+
+    if (!trimmedName || !trimmedEmail || !trimmedPassword) {
+      setSignupError('Please fill in your name, email, and password.');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
+      setSignupError('Please enter a valid email address.');
+      return;
+    }
+
+    if (trimmedPassword.length < 6) {
+      setSignupError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        'hymlSignup',
+        JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          group,
+          animal,
+          code,
+          joinedAt: new Date().toISOString(),
+        })
+      );
+    } catch {}
+
+    setShowSignup(false);
+    navigate('/dashboard', {
+      state: { group, userName: trimmedName, email: trimmedEmail },
+    });
+  }
+
   return (
     <div style={s.page}>
       {/* Keyframe styles for float-dot animations */}
@@ -419,7 +493,7 @@ export default function Result() {
 
         <button
           style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-          onClick={() => navigate('/dashboard', { state: { group } })}
+          onClick={openSignup}
         >
           Join the {group} &nbsp;→
         </button>
@@ -596,12 +670,67 @@ export default function Result() {
           </p>
           <button
             style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-            onClick={() => navigate('/dashboard', { state: { group } })}
+            onClick={openSignup}
           >
             Join {group} · Start Your Missions &nbsp;→
           </button>
         </div>
       </section>
+
+      {showSignup && (
+        <div style={s.signupOverlay} onClick={closeSignup}>
+          <div style={s.signupModal} onClick={e => e.stopPropagation()}>
+            <div style={s.signupHeader}>
+              <p style={s.signupEyebrow}>Sign Up</p>
+              <button type="button" style={s.signupClose} onClick={closeSignup}>
+                X
+              </button>
+            </div>
+            <h2 style={{ ...s.signupTitle, color: colors.secondary }}>
+              Join the {group}
+            </h2>
+            <p style={s.signupSub}>
+              Create your HYML account to save your ocean type and start missions for the {group}.
+            </p>
+            <form style={s.signupForm} onSubmit={handleSignupSubmit}>
+              <input
+                name="name"
+                type="text"
+                placeholder="Your name"
+                value={signupForm.name}
+                onChange={handleSignupChange}
+                style={s.signupInput}
+              />
+              <input
+                name="email"
+                type="email"
+                placeholder="Email address"
+                value={signupForm.email}
+                onChange={handleSignupChange}
+                style={s.signupInput}
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Password"
+                value={signupForm.password}
+                onChange={handleSignupChange}
+                style={s.signupInput}
+              />
+              {signupError && <div style={s.signupError}>{signupError}</div>}
+              <button
+                type="submit"
+                style={{
+                  ...s.signupSubmit,
+                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                }}
+              >
+                Create Account & Join {group}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1322,5 +1451,96 @@ const s = {
   ctaText: {
     fontSize: '16px', color: 'rgba(200,230,255,0.75)', lineHeight: 1.72,
     maxWidth: '520px', margin: '0 auto 28px',
+  },
+  signupOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(2, 10, 24, 0.72)',
+    backdropFilter: 'blur(10px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    zIndex: 50,
+  },
+  signupModal: {
+    width: '100%',
+    maxWidth: '460px',
+    background: 'linear-gradient(145deg, rgba(6,18,45,0.96), rgba(2,10,25,0.98))',
+    border: '1px solid rgba(72,202,228,0.14)',
+    borderRadius: '24px',
+    padding: '28px',
+    boxShadow: '0 26px 80px rgba(0,0,0,0.45)',
+  },
+  signupHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '14px',
+  },
+  signupEyebrow: {
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '2.5px',
+    textTransform: 'uppercase',
+    color: 'rgba(72,202,228,0.58)',
+  },
+  signupClose: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    border: '1px solid rgba(72,202,228,0.16)',
+    background: 'rgba(255,255,255,0.03)',
+    color: '#cfefff',
+    fontSize: '22px',
+    cursor: 'pointer',
+    lineHeight: 1,
+  },
+  signupTitle: {
+    fontSize: '30px',
+    fontWeight: 800,
+    marginBottom: '10px',
+    letterSpacing: '-0.5px',
+  },
+  signupSub: {
+    fontSize: '14px',
+    color: 'rgba(190,225,255,0.68)',
+    lineHeight: 1.7,
+    marginBottom: '22px',
+  },
+  signupForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  signupInput: {
+    width: '100%',
+    padding: '15px 16px',
+    borderRadius: '14px',
+    border: '1px solid rgba(72,202,228,0.14)',
+    background: 'rgba(5,16,40,0.82)',
+    color: '#e8f4fd',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  signupError: {
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1px solid rgba(239,68,68,0.35)',
+    background: 'rgba(239,68,68,0.12)',
+    color: '#fca5a5',
+    fontSize: '13px',
+    lineHeight: 1.5,
+  },
+  signupSubmit: {
+    marginTop: '4px',
+    padding: '16px 18px',
+    border: 'none',
+    borderRadius: '14px',
+    color: '#fff',
+    fontSize: '15px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 12px 30px rgba(0,0,0,0.24)',
   },
 };
