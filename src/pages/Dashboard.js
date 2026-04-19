@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [attendResult, setAttendResult] = useState(null);
   const [attendLoading, setAttendLoading] = useState(false);
   const [activeTab, setActiveTab]     = useState('missions');
+  const [expandedMissionId, setExpandedMissionId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -106,6 +107,17 @@ export default function Dashboard() {
   const board   = leaderboard || FALLBACK_LEADERBOARD;
   const evList  = events     || FALLBACK_EVENTS;
   const maxPts  = Math.max(...board.map(g => g.points || 0));
+
+  function getMissionDetails(ev) {
+    return {
+      description:
+        ev.description ||
+        `${ev.type || 'Community'} mission hosted by ${ev.organizer}. Join this activity to support ocean health and earn echo points for ${myGroup}.`,
+      location: ev.location || 'San Diego Coast Hub',
+      time: ev.time || '10:00 AM - 12:00 PM',
+      requirement: ev.requirement || 'Bring a phone for check-in and wear comfortable clothes.',
+    };
+  }
 
   return (
     <div style={styles.page}>
@@ -172,30 +184,55 @@ export default function Dashboard() {
         {activeTab === 'missions' && (
           <div style={styles.content}>
             <div style={styles.eventsList}>
-              {evList.map((ev, i) => (
-                <div
-                  key={ev.id || i}
-                  style={{
-                    ...styles.eventCard,
-                    animation: `slideUp 0.5s ${i * 0.08}s ease both`,
-                  }}
-                >
-                  <div style={styles.eventLeft}>
-                    <div style={styles.eventDot} />
-                    <div>
-                      <p style={styles.eventTitle}>{ev.title}</p>
-                      <p style={styles.eventOrg}>{ev.organizer}</p>
+              {evList.map((ev, i) => {
+                const missionId = ev.id || i;
+                const isExpanded = expandedMissionId === missionId;
+                const details = getMissionDetails(ev);
+
+                return (
+                  <div
+                    key={missionId}
+                    style={{
+                      ...styles.eventCard,
+                      ...(isExpanded ? styles.eventCardExpanded : null),
+                      animation: `slideUp 0.5s ${i * 0.08}s ease both`,
+                    }}
+                    onClick={() =>
+                      setExpandedMissionId(isExpanded ? null : missionId)
+                    }
+                  >
+                    <div style={styles.eventTopRow}>
+                      <div style={styles.eventLeft}>
+                        <div style={styles.eventDot} />
+                        <div>
+                          <p style={styles.eventTitle}>{ev.title}</p>
+                          <p style={styles.eventOrg}>{ev.organizer}</p>
+                        </div>
+                      </div>
+                      <div style={styles.eventRight}>
+                        <div style={styles.eventDateWrap}>
+                          <span style={styles.eventDate}>{ev.date}</span>
+                          <span style={styles.eventDays}>D-{ev.daysLeft}</span>
+                        </div>
+                        <div style={styles.eventPts}>+{ev.points} pts</div>
+                      </div>
                     </div>
+                    {isExpanded && (
+                      <div style={styles.eventDetails}>
+                        <p style={styles.eventDescription}>{details.description}</p>
+                        <div style={styles.eventMetaRow}>
+                          <span style={styles.eventMetaPill}>{ev.type || 'Mission'}</span>
+                          <span style={styles.eventMetaPill}>{details.location}</span>
+                          <span style={styles.eventMetaPill}>{details.time}</span>
+                        </div>
+                        <p style={styles.eventRequirement}>
+                          What to bring: {details.requirement}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  <div style={styles.eventRight}>
-                    <div style={styles.eventDateWrap}>
-                      <span style={styles.eventDate}>{ev.date}</span>
-                      <span style={styles.eventDays}>D-{ev.daysLeft}</span>
-                    </div>
-                    <div style={styles.eventPts}>+{ev.points} pts</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Quick attend from missions tab */}
@@ -466,14 +503,26 @@ const styles = {
   },
   eventCard: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     padding: '20px 24px',
     background: 'linear-gradient(145deg, rgba(10,28,65,0.7), rgba(5,16,40,0.85))',
     border: '1px solid rgba(72,202,228,0.1)',
     borderRadius: '16px',
     gap: '16px',
-    transition: 'border-color 0.2s',
+    transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
+    cursor: 'pointer',
+  },
+  eventCardExpanded: {
+    borderColor: 'rgba(72,202,228,0.28)',
+    boxShadow: '0 14px 34px rgba(0, 20, 60, 0.22)',
+    transform: 'translateY(-1px)',
+  },
+  eventTopRow: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
   },
   eventLeft: {
     display: 'flex',
@@ -526,6 +575,37 @@ const styles = {
     fontSize: '13px',
     fontWeight: 700,
     color: '#10b981',
+  },
+  eventDetails: {
+    width: '100%',
+    paddingTop: '4px',
+    borderTop: '1px solid rgba(72,202,228,0.08)',
+  },
+  eventDescription: {
+    fontSize: '13px',
+    color: 'rgba(190,225,255,0.72)',
+    lineHeight: 1.7,
+    marginBottom: '14px',
+  },
+  eventMetaRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginBottom: '12px',
+  },
+  eventMetaPill: {
+    padding: '6px 10px',
+    borderRadius: '999px',
+    background: 'rgba(72,202,228,0.08)',
+    border: '1px solid rgba(72,202,228,0.14)',
+    color: '#90e0ef',
+    fontSize: '12px',
+    fontWeight: 600,
+  },
+  eventRequirement: {
+    fontSize: '12px',
+    color: 'rgba(180,220,255,0.52)',
+    lineHeight: 1.6,
   },
   quickAttend: {
     display: 'flex',
