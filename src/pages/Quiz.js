@@ -155,11 +155,11 @@ export default function Quiz() {
         );
         try {
           const result = await scoreQuiz(newAnswers);
-          navigate('/result', { state: { result, scores } });
+          navigate('/result', { state: { fromQuiz: true, result, scores } });
         } catch (err) {
           // Fallback: local scoring so the app still works
           const result = localScore(newAnswers);
-          navigate('/result', { state: { result, scores } });
+          navigate('/result', { state: { fromQuiz: true, result, scores } });
         }
       }
     }, 320);
