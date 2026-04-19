@@ -953,7 +953,7 @@ export default function Dashboard() {
                   type="text"
                   value={attendCode}
                   onChange={e => setAttendCode(e.target.value.toUpperCase())}
-                  placeholder="Enter event code (e.g. OCN2024)"
+                  placeholder="Enter event code (e.g.OCN2024)"
                   style={styles.codeInput}
                   maxLength={12}
                 />
