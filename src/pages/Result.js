@@ -1172,10 +1172,9 @@ function PersonalitySection({ animal, scores, colors, code }) {
                 }} />
               </div>
               <span style={{ ...ps.barLabelRight, color: rightColor }}>{d.b}</span>
-              <span style={{ ...ps.barPct, color: colors.primary }}>{pct}%</span>
             </div>
           );
-        })}
+        })}  
       </div>
 
       {/* Strengths */}

@@ -192,50 +192,59 @@ export default function Quiz() {
 
 function localScore(answers) {
   // Each dimension: count A answers in the 4-question block
-  const majority = (start, aVal, bVal) => {
+const dim = (start) => {
     const slice = answers.slice(start, start + 4);
-    return slice.filter(x => x === 'A').length >= 2 ? aVal : bVal;
+    const aCount = slice.filter(x => x === 'A').length;
+    
+    // Tie-breaker
+    if (aCount === 2) {
+      return slice[0];
+    }
+    
+    return aCount > 2 ? 'A' : 'B';
   };
 
-  const d1 = majority(0,  'D', 'R');  // Deep / Reef
-  const d2 = majority(4,  'C', 'R');  // Current / Tide → T normalized to R
-  const d3 = majority(8,  'P', 'N');  // Predator / Nurturer
-  const d4 = majority(12, 'S', 'F');  // Structured / Flowing
+  // 1. Calculate the raw letters
+  const d1 = dim(0) === 'A' ? 'D' : 'R';  // Deep vs Reef
+  const d2 = dim(4) === 'A' ? 'C' : 'T';  // Current vs Tide
+  const d3 = dim(8) === 'A' ? 'P' : 'N';  // Predator vs Nurturer
+  const d4 = dim(12) === 'A' ? 'S' : 'F'; // Structured vs Flowing
 
-  const code = `${d1}${d2}${d3}${d4}`;
-
-  // Group: determined solely by D1 and D3
-  const group = { DP: 'Hunters', DN: 'Wanderers', RP: 'Guardians', RN: 'Builders' }[`${d1}${d3}`];
+  // 2. The Fix: Normalize 'T' to 'R' so it matches the dictionary keys
+  const normalizedD2 = d2 === 'T' ? 'R' : d2;
+  
+  const lookupKey = `${d1}${normalizedD2}${d3}${d4}`;
+  const displayCode = `${d1}${d2}${d3}${d4}`; // Keep T for the user UI
 
   const codeMap = {
-    DCPS: { animal: 'Great White Shark', emoji: '🦈' },
-    DCPF: { animal: 'Barracuda',         emoji: '🐟' },
-    DCNS: { animal: 'Moray Eel',         emoji: '🐍' },
-    DCNF: { animal: 'Mantis Shrimp',     emoji: '🦐' },
-    DRPS: { animal: 'Sea Turtle',        emoji: '🐢' },
-    DRPF: { animal: 'Manta Ray',         emoji: '🐡' },
-    DRNS: { animal: 'Flying Fish',       emoji: '🐟' },
-    DRNF: { animal: 'Jellyfish',         emoji: '🪼' },
-    RCPS: { animal: 'Humpback Whale',    emoji: '🐳' },
-    RCPF: { animal: 'Dolphin',           emoji: '🐬' },
-    RCNS: { animal: 'Octopus',           emoji: '🐙' },
-    RCNF: { animal: 'Seahorse',          emoji: '🐠' },
-    RRPS: { animal: 'Clownfish',         emoji: '🐠' },
-    RRPF: { animal: 'Sea Otter',         emoji: '🦦' },
-    RRNS: { animal: 'Hermit Crab',       emoji: '🦀' },
-    RRNF: { animal: 'Coral Polyp',       emoji: '🪸' },
+    'DCPS': { animal: 'Great White Shark', group: 'Hunters',   emoji: '🦈' },
+    'DCPF': { animal: 'Barracuda',         group: 'Hunters',   emoji: '🐟' },
+    'DCNS': { animal: 'Moray Eel',         group: 'Hunters',   emoji: '🐍' },
+    'DCNF': { animal: 'Mantis Shrimp',     group: 'Hunters',   emoji: '🦐' },
+    'DRPS': { animal: 'Sea Turtle',        group: 'Wanderers', emoji: '🐢' },
+    'DRPF': { animal: 'Manta Ray',         group: 'Wanderers', emoji: '🐡' },
+    'DRNS': { animal: 'Flying Fish',       group: 'Wanderers', emoji: '🐟' },
+    'DRNF': { animal: 'Jellyfish',         group: 'Wanderers', emoji: '🪼' },
+    'RCPS': { animal: 'Humpback Whale',    group: 'Guardians', emoji: '🐳' },
+    'RCPF': { animal: 'Dolphin',           group: 'Guardians', emoji: '🐬' },
+    'RCNS': { animal: 'Octopus',           group: 'Guardians', emoji: '🐙' },
+    'RCNF': { animal: 'Seahorse',          group: 'Guardians', emoji: '🐠' },
+    'RRPS': { animal: 'Clownfish',         group: 'Builders',  emoji: '🐠' },
+    'RRPF': { animal: 'Sea Otter',         group: 'Builders',  emoji: '🦦' },
+    'RRNS': { animal: 'Hermit Crab',       group: 'Builders',  emoji: '🦀' },
+    'RRNF': { animal: 'Coral Polyp',       group: 'Builders',  emoji: '🪸' },
   };
 
-  const match = codeMap[code] || codeMap['RCNS'];
+  const match = codeMap[lookupKey] || { animal: 'Starfish', group: 'Guardians', emoji: '⭐' };
 
   console.log('[localScore] answers:', answers);
-  console.log(`[localScore] D1=${d1} D2=${d2} D3=${d3} D4=${d4} → code=${code} → ${match.animal} (${group})`);
+  console.log(`[localScore] D1=${d1} D2=${d2} D3=${d3} D4=${d4} → code=${displayCode} → ${match.animal} (${match.group})`);
 
   return {
     animal: match.animal,
-    group,
-    emoji:  match.emoji,
-    code,
+    group: match.group,
+    emoji: match.emoji,
+    code: displayCode, // Shows the real code (e.g., RTNS)
     description: `As a ${match.animal}, you navigate life with a unique current. Your ocean personality shapes how you connect, decide, and move through the world.`,
   };
 }
