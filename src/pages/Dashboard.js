@@ -1257,6 +1257,142 @@ function IconAttend() {
   );
 }
 
+// ─── Mini Argo Float Map ──────────────────────────────────────────────────────
+
+const MINI_FLOATS = [
+  { lat:34.2, lon:-122.5, sst:17.4 }, { lat:36.8, lon:-125.1, sst:16.8 },
+  { lat:38.5, lon:-127.0, sst:15.9 }, { lat:32.1, lon:-119.8, sst:18.2 },
+  { lat:35.5, lon:-128.5, sst:16.1 }, { lat:30.5, lon:-118.2, sst:19.1 },
+  { lat:37.2, lon:-121.5, sst:17.0 }, { lat:33.8, lon:-126.3, sst:16.5 },
+  { lat:39.8, lon:-129.2, sst:15.2 }, { lat:31.2, lon:-122.8, sst:17.8 },
+  { lat:35.0, lon:-124.6, sst:16.9 },
+];
+
+function sstDot(t) {
+  if (t < 15) return '#0077b6';
+  if (t < 17) return '#00b4d8';
+  if (t < 19) return '#f9c74f';
+  return '#ef4444';
+}
+
+function MiniMap() {
+  const W = 320, H = 180;
+  const lonMin = -130, lonMax = -110, latMin = 20, latMax = 40;
+  const toX = lon => ((lon - lonMin) / (lonMax - lonMin)) * W;
+  const toY = lat => (1 - (lat - latMin) / (latMax - latMin)) * H;
+
+  const COAST = [
+    [-117.1,32.5],[-117.3,33.0],[-117.8,33.5],[-118.2,33.8],[-118.8,34.0],
+    [-119.7,34.4],[-120.4,34.8],[-121.0,35.3],[-121.8,36.3],[-122.2,37.3],
+    [-122.5,37.8],[-122.7,38.0],[-123.0,38.4],[-124.0,39.3],[-124.3,40.0],
+  ];
+  const coastPts = COAST.map(([lon, lat]) => `${toX(lon)},${toY(lat)}`).join(' ');
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <defs>
+        <radialGradient id="miniOcean" cx="40%" cy="60%" r="70%">
+          <stop offset="0%" stopColor="#0a2540" />
+          <stop offset="100%" stopColor="#020b18" />
+        </radialGradient>
+        <clipPath id="miniClip"><rect x="0" y="0" width={W} height={H} /></clipPath>
+        <filter id="miniGlow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <rect x="0" y="0" width={W} height={H} fill="url(#miniOcean)" />
+      {/* Grid lines */}
+      {[25,30,35,40].map(lat => (
+        <line key={lat} x1={0} y1={toY(lat)} x2={W} y2={toY(lat)}
+          stroke="rgba(72,202,228,0.07)" strokeWidth="1" strokeDasharray="3 5" />
+      ))}
+      {/* Coastline */}
+      <polyline points={coastPts} fill="none"
+        stroke="rgba(180,210,240,0.3)" strokeWidth="1.5"
+        strokeLinejoin="round" clipPath="url(#miniClip)" />
+      {/* Float dots */}
+      {MINI_FLOATS.map((f, i) => {
+        const x = toX(f.lon), y = toY(f.lat);
+        const col = sstDot(f.sst);
+        return (
+          <g key={i} filter="url(#miniGlow)">
+            <circle cx={x} cy={y} r="4" fill={col} opacity="0.9" />
+            <circle cx={x} cy={y} r="7" fill="none" stroke={col} strokeWidth="1"
+              opacity="0.4" style={{ animation: `argoRing 2.4s ${i*0.22}s ease-out infinite` }} />
+          </g>
+        );
+      })}
+      <rect x="0" y="0" width={W} height={H} fill="none"
+        stroke="rgba(72,202,228,0.12)" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function ArgoBanner() {
+  return (
+    <div style={argoBannerStyles.wrap}>
+      <style>{`
+        @keyframes argoRing {
+          0%   { transform: scale(1); opacity: 0.7; }
+          100% { transform: scale(4); opacity: 0; }
+        }
+      `}</style>
+      <div style={argoBannerStyles.text}>
+        <p style={argoBannerStyles.eyebrow}>Scripps Institution of Oceanography · Argo Program</p>
+        <h3 style={argoBannerStyles.title}>Your missions protect the California Current</h3>
+        <p style={argoBannerStyles.sub}>
+          The same waters monitored by Scripps Argo floats — 12 autonomous robots
+          drifting, diving, and transmitting ocean data right now.
+        </p>
+        <div style={argoBannerStyles.legend}>
+          {[['< 15°C','#0077b6'],['15–17°C','#00b4d8'],['17–19°C','#f9c74f'],['> 19°C','#ef4444']].map(([lbl,col]) => (
+            <span key={lbl} style={argoBannerStyles.legendItem}>
+              <span style={{ ...argoBannerStyles.legendDot, background: col }} />{lbl}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div style={argoBannerStyles.map}>
+        <MiniMap />
+      </div>
+    </div>
+  );
+}
+
+const argoBannerStyles = {
+  wrap: {
+    display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap',
+    background: 'linear-gradient(135deg, rgba(0,30,60,0.6), rgba(2,14,36,0.75))',
+    border: '1px solid rgba(72,202,228,0.13)', borderRadius: '20px',
+    padding: '24px 28px', marginBottom: '32px',
+    animation: 'fadeIn 0.5s ease both',
+  },
+  text: { flex: 1, minWidth: '200px' },
+  eyebrow: {
+    fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase',
+    color: 'rgba(72,202,228,0.5)', marginBottom: '8px',
+  },
+  title: {
+    fontSize: 'clamp(15px, 2vw, 19px)', fontWeight: 700,
+    color: '#e8f4fd', marginBottom: '8px', lineHeight: 1.3,
+  },
+  sub: {
+    fontSize: '13px', color: 'rgba(180,220,255,0.55)', lineHeight: 1.65, marginBottom: '14px',
+  },
+  legend: { display: 'flex', gap: '12px', flexWrap: 'wrap' },
+  legendItem: {
+    display: 'flex', alignItems: 'center', gap: '5px',
+    fontSize: '11px', color: 'rgba(150,200,230,0.5)',
+  },
+  legendDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  map: {
+    width: '320px', flexShrink: 0,
+    background: 'rgba(2,10,25,0.8)', borderRadius: '14px',
+    border: '1px solid rgba(72,202,228,0.1)', overflow: 'hidden',
+  },
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1533,6 +1669,7 @@ export default function Dashboard() {
         {/* MISSIONS TAB */}
         {activeTab === "missions" && (
           <div style={styles.content}>
+            <ArgoBanner />
             <p style={styles.recSubtitle}>Sorted by match with your {_animal || myGroup} personality</p>
             <div style={styles.eventsList}>
               {scoredEvList.map((ev, i) => {

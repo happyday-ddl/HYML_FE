@@ -460,6 +460,9 @@ export default function Main() {
             </button>
           )}
           <p style={styles.ctaNote}>16 questions · 2 minutes · Free</p>
+          <p style={styles.scrippsNote}>
+            Based on data from 4,000+ Argo floats worldwide&nbsp;·&nbsp;Scripps Institution of Oceanography
+          </p>
         </div>
 
         <div style={styles.heroRight}>
@@ -745,6 +748,10 @@ const styles = {
     marginBottom: '14px',
   },
   ctaNote: { fontSize: '12px', color: 'rgba(180,210,240,0.45)', letterSpacing: '0.5px', marginTop: '12px' },
+  scrippsNote: {
+    fontSize: '11px', color: 'rgba(100,170,210,0.38)', letterSpacing: '0.3px',
+    marginTop: '8px', lineHeight: 1.5,
+  },
   heroRight: {
     flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
     animation: 'floatSlow 6s ease-in-out infinite',
