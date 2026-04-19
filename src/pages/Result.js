@@ -867,7 +867,7 @@ const landPoly = [
               strokeWidth="1.5"
               opacity={visible ? 0.8 : 0}
               style={{
-                transformOrigin: `${x}px ${y}px`,
+                transformOrigin: 'center',
                 transformBox: 'fill-box',
                 animation: visible ? `argoRing 2.4s ${delay}s ease-out infinite` : 'none',
               }}
@@ -880,7 +880,7 @@ const landPoly = [
               strokeWidth="1"
               opacity={visible ? 0.5 : 0}
               style={{
-                transformOrigin: `${x}px ${y}px`,
+                transformOrigin: 'center',
                 transformBox: 'fill-box',
                 animation: visible ? `argoRing 2.4s ${delay + 1.2}s ease-out infinite` : 'none',
               }}
