@@ -321,18 +321,11 @@ function OceanPanel({ board, myGroup }) {
   const [oceanData, setOceanData] = useState(null);
   useEffect(() => {
       const year = Math.max(2003, Math.min(2021, 2021 - Math.floor(groupPoints / 100)));
-      fetch(`${process.env.REACT_APP_API_URL}/api/ocean-health?year=${year}`)
+      fetch(`https://hymlbe-production.up.railway.app/api/ocean-health?year=${year}`)
           .then(r => r.json())
           .then(setOceanData)
           .catch(console.error);
 }, [groupPoints]);
-  fetch(`${process.env.REACT_APP_API_URL}/api/ocean-health?year=${clampedYear}`)
-    .then(r => r.json())
-    .then(setOceanData)
-    .catch(console.error);
-}, [groupPoints]);
-
-
   // Creatures unlocked per level (see getCreatures)
   const creatures = getCreatures(level);
   // Trash: 6 at level 0, remove one per level → 0 at level 6
