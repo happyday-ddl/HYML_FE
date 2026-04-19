@@ -2,11 +2,17 @@ import React from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const ARGOVIS_URL =
-  "https://argovis-api.colorado.edu/selection/profiles" +
-  "?startDate=2020-01-01&endDate=2020-01-15" +
-  "&polygon=" +
-  encodeURIComponent("[[-130,20],[-110,20],[-110,40],[-130,40],[-130,20]]");
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "https://hymlbe-production.up.railway.app";
+
+const ARGOVIS_PARAMS = new URLSearchParams({
+  startDate: "2020-01-01T00:00:00Z",
+  endDate: "2020-01-15T23:59:59Z",
+  polygon: "[[-130,20],[-110,20],[-110,40],[-130,40],[-130,20]]",
+  data: "pres,temp",
+});
+
+export const ARGOVIS_URL = `${API_BASE_URL}/argovis/profiles?${ARGOVIS_PARAMS.toString()}`;
 
 export const MAP = {
   lonMin: -128,
