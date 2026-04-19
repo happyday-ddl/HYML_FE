@@ -1,4 +1,4 @@
-const BASE_URL = 'https://hymlbe-production.up.railway.app';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://hymlbe-production.up.railway.app'
 
 export async function scoreQuiz(answers) {
   const res = await fetch(`${BASE_URL}/quiz/score`, {
