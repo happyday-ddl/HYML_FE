@@ -309,24 +309,28 @@ export default function Result() {
   const [visible,  setVisible]  = useState(false);
   const [selected, setSelected] = useState(0); // which float's profile to show
   const [showSignup, setShowSignup] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [joinedUser, setJoinedUser] = useState('');
   const [signupForm, setSignupForm] = useState(() => {
     try {
       const saved = localStorage.getItem('hymlSignup');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
-          name: parsed.name || '',
-          email: parsed.email || '',
-          password: '',
-        };
+        return { name: parsed.name || '', email: parsed.email || '', password: '' };
       }
     } catch {}
-
     return { name: '', email: '', password: '' };
   });
   const [signupError, setSignupError] = useState('');
 
-  const result  = location.state?.result;
+  // Read result from nav state, falling back to localStorage for back-navigation / reloads
+  const stateResult = location.state?.result;
+  const stateScores = location.state?.scores;
+  const savedResult = (() => {
+    try { return JSON.parse(localStorage.getItem('hymlResult') || 'null'); } catch { return null; }
+  })();
+
+  const result  = stateResult || savedResult?.result;
   const group   = result?.group   || 'Guardians';
   const animal  = result?.animal  || 'Sea Turtle';
   const code    = result?.code    || 'RCNS';
@@ -334,7 +338,16 @@ export default function Result() {
   const desc    = result?.description
     || `As a ${animal}, you navigate life with patience and wisdom. Your ocean personality shapes how you connect, protect, and move through the world.`;
   const colors  = GROUP_COLORS[group] || GROUP_COLORS.Guardians;
-  const scores  = location.state?.scores || [2, 2, 2, 2];
+  const scores  = stateScores || savedResult?.scores || [2, 2, 2, 2];
+
+  // Persist result so the page survives back-navigation and reloads
+  useEffect(() => {
+    if (stateResult) {
+      try {
+        localStorage.setItem('hymlResult', JSON.stringify({ result: stateResult, scores: stateScores || [2,2,2,2] }));
+      } catch {}
+    }
+  }, [stateResult, stateScores]);
 
   // Fetch Argovis data
   useEffect(() => {
@@ -452,11 +465,10 @@ export default function Result() {
       const userId = authData.user.id;
       await saveResult(userId, code, animal, group);
 
-      // 4. Move to dashboard
+      // 4. Stay on result page, show success state
       setShowSignup(false);
-      navigate('/dashboard', {
-        state: { group, userName: trimmedName, email: trimmedEmail },
-      });
+      setJoined(true);
+      setJoinedUser(trimmedName);
 
     } catch (err) {
       setSignupError(err.message);
@@ -482,7 +494,17 @@ export default function Result() {
       {/* ── Nav ── */}
       <nav style={s.nav}>
         <span style={s.logo} onClick={() => navigate('/')}>HYML</span>
-        <button style={s.navBtn} onClick={() => navigate('/quiz')}>Retake Quiz</button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {joined && (
+            <button
+              style={{ ...s.navBtn, borderColor: colors.primary + '66', color: colors.secondary }}
+              onClick={() => navigate('/dashboard', { state: { group, userName: joinedUser } })}
+            >
+              Go to Dashboard →
+            </button>
+          )}
+          <button style={s.navBtn} onClick={() => navigate('/quiz')}>Retake Quiz</button>
+        </div>
       </nav>
 
       {/* ── Animal Hero ── */}
@@ -510,12 +532,30 @@ export default function Result() {
 
         <p style={s.descText}>{desc}</p>
 
-        <button
-          style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-          onClick={openSignup}
-        >
-          Join the {group} &nbsp;→
-        </button>
+        {joined ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              padding: '12px 28px', borderRadius: '50px',
+              background: colors.bg, border: `1px solid ${colors.primary}55`,
+              color: colors.secondary, fontSize: '15px', fontWeight: 600,
+            }}>
+              ✓ Welcome to the {group}, {joinedUser}!
+            </div>
+            <button
+              style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
+              onClick={() => navigate('/dashboard', { state: { group, userName: joinedUser } })}
+            >
+              Go to Dashboard &nbsp;→
+            </button>
+          </div>
+        ) : (
+          <button
+            style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
+            onClick={openSignup}
+          >
+            Join the {group} &nbsp;→
+          </button>
+        )}
       </section>
 
       {/* ── Personality divider ── */}
@@ -687,12 +727,21 @@ export default function Result() {
             Join your HYML group, complete ocean missions, and earn echo points
             for protecting the California Current.
           </p>
-          <button
-            style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-            onClick={openSignup}
-          >
-            Join {group} · Start Your Missions &nbsp;→
-          </button>
+          {joined ? (
+            <button
+              style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
+              onClick={() => navigate('/dashboard', { state: { group, userName: joinedUser } })}
+            >
+              Go to Dashboard · Start Your Missions &nbsp;→
+            </button>
+          ) : (
+            <button
+              style={{ ...s.joinBtn, background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
+              onClick={openSignup}
+            >
+              Join {group} · Start Your Missions &nbsp;→
+            </button>
+          )}
         </div>
       </section>
 
