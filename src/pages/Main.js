@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { ARGOVIS_URL } from '../argoShared';
 
 // ─── SVG Illustrations ────────────────────────────────────────────────────────
 
@@ -257,11 +258,56 @@ export default function Main() {
 
   const obtiRef    = useRef(null);
   const footerRef  = useRef(null);
+  const [argoStats, setArgoStats] = useState({ count: null, avgSST: null });
 
   // Fade-in on mount
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80);
     return () => clearTimeout(t);
+  }, []);
+
+  // Fetch live Argo float stats for the stat bar
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    (async () => {
+      try {
+        const res = await fetch(ARGOVIS_URL, { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('non-200');
+        const raw = await res.json();
+        if (!cancelled && Array.isArray(raw) && raw.length > 0) {
+          const floats = raw.filter(p => {
+            const lat = p.lat ?? p.latitude;
+            const lon = p.lon ?? p.longitude ?? p.geolocation?.coordinates?.[0];
+            return lat != null && lon != null;
+          });
+          const sstList = floats.map(p => {
+            if (Array.isArray(p.measurements)) {
+              const surf = p.measurements.find(m => m.pres < 20);
+              return surf?.temp ?? p.measurements[0]?.temp ?? null;
+            }
+            if (Array.isArray(p.data) && Array.isArray(p.data_info?.[0])) {
+              const cols = p.data_info[0];
+              const pi = cols.indexOf('pres'), ti = cols.indexOf('temp');
+              if (pi >= 0 && ti >= 0) {
+                const surf = p.data.find(r => r[pi] < 20);
+                return surf?.[ti] ?? p.data[0]?.[ti] ?? null;
+              }
+            }
+            return null;
+          }).filter(t => t != null);
+          const avgSST = sstList.length
+            ? (sstList.reduce((a, b) => a + b, 0) / sstList.length).toFixed(1)
+            : null;
+          setArgoStats({ count: floats.length, avgSST });
+        }
+      } catch {
+        clearTimeout(timer);
+      }
+    })();
+    return () => { cancelled = true; controller.abort(); };
   }, []);
 
   // Restore existing session
@@ -299,7 +345,7 @@ export default function Main() {
         ({ error } = await supabase.auth.signUp({ email, password }));
       }
       if (error) {
-        setAuthErr(error.message);
+        setAuthErr(tab === 'signin' ? 'Incorrect email or password.' : 'Sign up failed. Please try again.');
       } else {
         setModal(false);
         let savedGroup = 'Guardians';
@@ -318,6 +364,17 @@ export default function Main() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  function goToDashboard() {
+    let savedGroup = 'Guardians';
+    let savedAnimalEmoji = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem('hymlSignup') || '{}');
+      if (saved.group) savedGroup = saved.group;
+      if (saved.animalEmoji) savedAnimalEmoji = saved.animalEmoji;
+    } catch {}
+    navigate('/dashboard', { state: { group: savedGroup, animalEmoji: savedAnimalEmoji } });
   }
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You';
@@ -357,7 +414,8 @@ export default function Main() {
               <span style={{ ...styles.navLink, color: '#90e0ef', cursor: 'default' }}>
                 {displayName}
               </span>
-              <span style={styles.navLink} onClick={handleSignOut}>Sign Out</span>
+              <span style={styles.navLink} onClick={goToDashboard}>Dashboard</span>
+              <span style={styles.navLink} onClick={handleSignOut}>Log Out</span>
             </>
           ) : (
             <span style={styles.navLink} onClick={() => openModal('signin')}>Log In</span>
@@ -387,10 +445,24 @@ export default function Main() {
             Dive deep. Discover your ocean personality.<br />
             Join your group and protect what matters.
           </p>
-          <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
-            Take the Quiz &nbsp;→
-          </button>
+          {user ? (
+            <div style={styles.ctaBtnGroup}>
+              <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
+                Take the Quiz &nbsp;→
+              </button>
+              <button style={styles.ctaBtnSecondary} onClick={goToDashboard}>
+                Go to Dashboard &nbsp;→
+              </button>
+            </div>
+          ) : (
+            <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
+              Take the Quiz &nbsp;→
+            </button>
+          )}
           <p style={styles.ctaNote}>16 questions · 2 minutes · Free</p>
+          <p style={styles.scrippsNote}>
+            Based on data from 4,000+ Argo floats worldwide&nbsp;·&nbsp;Scripps Institution of Oceanography
+          </p>
         </div>
 
         <div style={styles.heroRight}>
@@ -469,6 +541,19 @@ export default function Main() {
           </div>
         ))}
       </section>
+
+      {/* ── Live Argo stat bar ── */}
+      <div style={styles.argoBar}>
+        <span style={styles.argoBarDot} />
+        <span style={styles.argoBarText}>
+          🌊&nbsp;
+          {argoStats.count != null
+            ? `${argoStats.count} Argo floats monitoring the California Current right now`
+            : 'Argo floats monitoring the California Current'}
+          {argoStats.avgSST != null && ` · avg ${argoStats.avgSST}°C`}
+          &nbsp;·&nbsp;Data from Scripps Institution of Oceanography
+        </span>
+      </div>
 
       {/* ── Footer ── */}
       <footer ref={footerRef} style={styles.footer}>
@@ -651,7 +736,22 @@ const styles = {
     boxShadow: '0 8px 30px rgba(0,150,200,0.38)',
     animation: 'pulse 3s ease-in-out infinite', marginBottom: '14px',
   },
+  ctaBtnGroup: {
+    display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '0px',
+  },
+  ctaBtnSecondary: {
+    display: 'block', padding: '15px 42px',
+    background: 'transparent',
+    color: '#48cae4', border: '1.5px solid rgba(72,202,228,0.45)', borderRadius: '50px',
+    fontSize: '15px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.5px',
+    transition: 'border-color 0.2s, background 0.2s',
+    marginBottom: '14px',
+  },
   ctaNote: { fontSize: '12px', color: 'rgba(180,210,240,0.45)', letterSpacing: '0.5px', marginTop: '12px' },
+  scrippsNote: {
+    fontSize: '11px', color: 'rgba(100,170,210,0.38)', letterSpacing: '0.3px',
+    marginTop: '8px', lineHeight: 1.5,
+  },
   heroRight: {
     flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center',
     animation: 'floatSlow 6s ease-in-out infinite',
@@ -727,6 +827,23 @@ const styles = {
   footerMain: { fontSize: '12px', color: 'rgba(150,200,230,0.38)', marginBottom: '6px', letterSpacing: '0.5px' },
   footerSub:  { fontSize: '11px', color: 'rgba(100,160,200,0.28)', letterSpacing: '0.5px', marginBottom: '10px' },
   footerContact: { fontSize: '12px', color: 'rgba(150,200,230,0.45)' },
+  argoBar: {
+    position: 'relative', zIndex: 5,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+    padding: '12px 24px',
+    background: 'linear-gradient(90deg, rgba(0,30,60,0.0), rgba(0,60,100,0.18), rgba(0,30,60,0.0))',
+    borderTop: '1px solid rgba(72,202,228,0.1)',
+    borderBottom: '1px solid rgba(72,202,228,0.06)',
+  },
+  argoBarDot: {
+    display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%',
+    background: '#10b981', boxShadow: '0 0 6px #10b981',
+    animation: 'pulse 2.5s ease-in-out infinite', flexShrink: 0,
+  },
+  argoBarText: {
+    fontSize: '12px', color: 'rgba(150,210,240,0.65)', letterSpacing: '0.2px',
+    textAlign: 'center', lineHeight: 1.4,
+  },
 
   // Modal
   modalOverlay: {
