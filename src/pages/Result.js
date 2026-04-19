@@ -8,37 +8,35 @@ const ARGOVIS_URL =
   '?startDate=2020-01-01&endDate=2020-01-15' +
   '&polygon=' + encodeURIComponent('[[-130,20],[-110,20],[-110,40],[-130,40],[-130,20]]');
 
-// Map bounding box: lon [-130, -110], lat [20, 40]
-const MAP = { lonMin: -130, lonMax: -110, latMin: 20, latMax: 40, W: 680, H: 380 };
+// Map bounding box: Zoomed in with a proper aspect ratio
+const MAP = { lonMin: -128, lonMax: -110, latMin: 24, latMax: 42, W: 680, H: 480 };
 
-// Simplified California + Baja coastline (lon, lat) from Cabo San Lucas → Oregon
+// Much more accurate California + Baja coastline
 const COASTLINE = [
-  [-109.9,22.9],[-110.1,23.5],[-110.4,24.8],[-110.8,25.5],[-111.2,26.3],
-  [-112.0,27.5],[-113.0,28.4],[-114.0,29.0],[-114.5,29.5],[-115.0,30.0],
-  [-115.5,30.5],[-116.0,31.0],[-116.6,31.5],[-116.9,32.0],[-117.1,32.4],
-  [-117.3,32.7],[-117.5,33.1],[-117.8,33.5],[-118.1,33.8],[-118.4,33.9],
-  [-118.8,34.0],[-119.1,34.1],[-119.7,34.4],[-120.4,34.8],[-121.0,35.3],
-  [-121.4,35.8],[-121.8,36.3],[-121.9,36.8],[-122.2,37.3],[-122.5,37.8],
-  [-122.7,38.0],[-123.0,38.4],[-123.4,38.8],[-124.0,39.3],[-124.2,39.8],
-  [-124.3,40.0],
+  [-109.9,22.9],[-110.4,24.8],[-111.0,25.3],[-111.5,26.0],[-112.3,27.0],
+  [-113.5,28.0],[-114.2,28.8],[-115.2,29.8],[-115.8,30.7],[-116.3,31.4],
+  [-117.1,32.5],[-117.3,33.0],[-117.8,33.5],[-118.2,33.8],[-118.5,34.0],
+  [-119.0,34.1],[-119.8,34.4],[-120.5,34.5],[-120.6,34.8],[-121.2,35.3],
+  [-121.8,36.2],[-122.0,36.8],[-122.4,37.5],[-122.5,37.8],[-123.0,38.3],
+  [-123.7,39.0],[-124.2,40.0],[-124.4,40.4],[-124.2,41.0],[-124.3,42.0]
 ];
 
-// Realistic fallback: ~12 Argo floats in the California Current, Jan 2020
+// Fallback floats scattered nicely across the new map bounds
 const FALLBACK_FLOATS = [
   { lat:34.2, lon:-122.5, id:'WMO5905785', sst:17.4,
     profile:[{pres:5,temp:17.4},{pres:25,temp:16.1},{pres:50,temp:15.2},{pres:100,temp:13.8},
              {pres:200,temp:11.2},{pres:300,temp:9.8},{pres:500,temp:7.8},
              {pres:750,temp:6.1},{pres:1000,temp:4.5},{pres:1500,temp:3.2},{pres:2000,temp:2.8}] },
-  { lat:36.8, lon:-125.1, id:'WMO5905412', sst:16.8, profile:[] },
-  { lat:38.5, lon:-127.0, id:'WMO5903612', sst:15.9, profile:[] },
-  { lat:32.1, lon:-119.8, id:'WMO6901234', sst:18.2, profile:[] },
-  { lat:35.5, lon:-128.5, id:'WMO5906789', sst:16.1, profile:[] },
-  { lat:30.5, lon:-118.2, id:'WMO5902345', sst:19.1, profile:[] },
-  { lat:37.2, lon:-121.5, id:'WMO5904567', sst:17.0, profile:[] },
-  { lat:33.8, lon:-126.3, id:'WMO6900123', sst:16.5, profile:[] },
-  { lat:28.5, lon:-116.0, id:'WMO5905890', sst:20.3, profile:[] },
-  { lat:39.8, lon:-129.2, id:'WMO6901567', sst:15.2, profile:[] },
-  { lat:31.2, lon:-122.8, id:'WMO5903890', sst:17.8, profile:[] },
+  { lat:32.8, lon:-118.5, id:'WMO5905412', sst:18.8, profile:[] },
+  { lat:36.5, lon:-123.0, id:'WMO5903612', sst:15.9, profile:[] },
+  { lat:31.1, lon:-119.8, id:'WMO6901234', sst:18.2, profile:[] },
+  { lat:38.5, lon:-125.5, id:'WMO5906789', sst:14.1, profile:[] },
+  { lat:29.5, lon:-116.2, id:'WMO5902345', sst:19.5, profile:[] },
+  { lat:34.5, lon:-121.5, id:'WMO5904567', sst:17.0, profile:[] },
+  { lat:33.8, lon:-120.3, id:'WMO6900123', sst:16.5, profile:[] },
+  { lat:26.5, lon:-114.0, id:'WMO5905890', sst:21.3, profile:[] },
+  { lat:39.8, lon:-126.2, id:'WMO6901567', sst:13.2, profile:[] },
+  { lat:31.2, lon:-121.8, id:'WMO5903890', sst:17.8, profile:[] },
   { lat:35.0, lon:-124.6, id:'WMO6900456', sst:16.9, profile:[] },
 ];
 
@@ -744,11 +742,11 @@ function FloatMap({ floats, visible, selected, onSelect, groupColor }) {
 
   // Build land polygon: coastline → top-right → bottom-right → close
   const coastPts = COASTLINE.map(([lon, lat]) => `${toX(lon)},${toY(lat)}`).join(' ');
-  const landPoly = [
+const landPoly = [
     ...COASTLINE.map(([lon, lat]) => `${toX(lon)},${toY(lat)}`),
-    `${W},${toY(40)}`,   // top-right corner of box
-    `${W},${toY(20)}`,   // bottom-right corner
-    `${toX(-109.9)},${toY(22.9)}`, // back to Baja tip
+    `${W},${toY(MAP.latMax)}`,   // top-right corner of box
+    `${W},${toY(MAP.latMin)}`,   // bottom-right corner
+    `${toX(COASTLINE[0][0])},${toY(COASTLINE[0][1])}`, // back to start
   ].join(' ');
 
   // Lat/lon grid lines
