@@ -28,7 +28,7 @@ export async function saveResult(trimmedName, userId, code, animal, group) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      username: trimmedName,
+      trimmedName,
       userId,
       code,
       animal,
