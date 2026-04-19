@@ -1278,26 +1278,32 @@ export default function Dashboard() {
   }, []);
 
   async function loadData() {
-    try {
-      const lb = await getLeaderboard();
+    const [lbResult, evResult] = await Promise.allSettled([
+      getLeaderboard(),
+      getEvents(),
+    ]);
+
+    if (lbResult.status === "fulfilled") {
+      const lb = lbResult.value;
       setLeaderboard(
         lb?.data ||
           lb?.leaderboard ||
           (Array.isArray(lb) ? lb : null) ||
           [],
       );
-    } catch {
+    } else {
       setLeaderboard([]);
     }
-    try {
-      const ev = await getEvents();
+
+    if (evResult.status === "fulfilled") {
+      const ev = evResult.value;
       setEvents(
         ev?.data ||
           ev?.events ||
           (Array.isArray(ev) ? ev : null) ||
           [],
       );
-    } catch {
+    } else {
       setEvents([]);
     }
   }
@@ -1324,10 +1330,27 @@ export default function Dashboard() {
           ? `Attendance confirmed! +${earnedPoints} echo points earned.`
           : "Attendance already confirmed.");
 
+      if (earnedPoints > 0) {
+        setLeaderboard((prev) => {
+          if (!Array.isArray(prev)) return prev;
+          return prev.map((entry) =>
+            entry.group === myGroup
+              ? {
+                  ...entry,
+                  total_points: (entry.total_points || 0) + earnedPoints,
+                  points: (entry.points || entry.total_points || 0) + earnedPoints,
+                }
+              : entry,
+          );
+        });
+      }
+
       setAttendResult({
         ok: true,
         message: successMessage,
       });
+
+      await loadData();
     } catch (err) {
       setAttendResult({
         ok: false,
@@ -1343,7 +1366,10 @@ export default function Dashboard() {
   const myMeta = GROUP_META[myGroup] || GROUP_META.Guardians;
   const board = leaderboard || [];
   const evList = events || [];
-  const maxPts = Math.max(...board.map((g) => g.points || 0));
+  const maxPts = Math.max(
+    1,
+    ...board.map((g) => g.total_points || g.points || 0),
+  );
 
   function getMissionDetails(ev) {
     return {
