@@ -531,27 +531,27 @@ export default function Result() {
     }
 
     try {
-      // 1. Try to sign up the user
-      let { data: authData, error: authError } = await supabase.auth.signUp({
+      // 1. Sign up the user — any error (incl. 422 duplicate email) stops the flow
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: trimmedEmail,
         password: trimmedPassword,
         options: { data: { name: trimmedName } },
       });
 
-      // 2. If they already exist, log them in instead
-      if (authError && authError.message.includes("already registered")) {
-        const { data: signInData, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: trimmedEmail,
-            password: trimmedPassword,
-          });
-        if (signInError) throw signInError;
-        authData = signInData;
-      } else if (authError) {
-        throw authError;
+      if (authError) {
+        if (
+          authError.message.toLowerCase().includes("already registered") ||
+          authError.message.toLowerCase().includes("already been registered") ||
+          authError.status === 422
+        ) {
+          setSignupError("This email is already registered. Please use a different email.");
+        } else {
+          setSignupError(authError.message);
+        }
+        return;
       }
 
-      // 3. Save their animal result to the backend profiles table
+      // 2. Save their animal result to the backend profiles table
       const userId = authData.user.id;
       await saveResult(trimmedName, userId, code, animal, group);
 
