@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserMissions } from '../api';
+import { supabase } from '../supabase';
 import {
   ARGOVIS_URL,
   FALLBACK_FLOATS,
@@ -25,36 +26,6 @@ const TYPE_META = {
   Education:  { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  icon: '📚' },
   Community:  { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', icon: '🤝' },
 };
-
-const FALLBACK_MISSIONS = [
-  {
-    id: 1,
-    title: 'Beach Cleanup — La Jolla Cove',
-    organizer: 'San Diego Student Council',
-    date: '26/04/12',
-    type: 'Cleanup',
-    points: 80,
-    verified: true,
-  },
-  {
-    id: 2,
-    title: 'Recycling Drive at UCSD',
-    organizer: 'San Diego Student Council',
-    date: '26/04/10',
-    type: 'Recycling',
-    points: 50,
-    verified: true,
-  },
-  {
-    id: 3,
-    title: 'Coral Watch Training',
-    organizer: 'CalCOFI Education Team',
-    date: '26/04/07',
-    type: 'Education',
-    points: 60,
-    verified: true,
-  },
-];
 
 function IconMissions() {
   return (
@@ -91,8 +62,6 @@ export default function MyPage() {
   const _saved = (() => { try { return JSON.parse(localStorage.getItem('hymlSignup') || '{}'); } catch { return {}; } })();
   const group       = location.state?.group       || _saved.group       || 'Guardians';
   const animalEmoji = location.state?.animalEmoji || _saved.animalEmoji || null;
-  const userId      = location.state?.userId || null;
-
   // Quiz result details from localStorage
   const animalName      = _saved.animal      || null;
   const animalNick      = _saved.nickname    || null;
@@ -103,8 +72,10 @@ export default function MyPage() {
 
   const meta = GROUP_META[group] || GROUP_META.Guardians;
 
-  const [missions, setMissions] = useState(null);
-  const [loading,  setLoading]  = useState(true);
+  // Load cached missions instantly, then fetch fresh
+  const _cachedMissions = (() => { try { return JSON.parse(localStorage.getItem('hymlMissions') || 'null'); } catch { return null; } })();
+  const [missions, setMissions] = useState(_cachedMissions);
+  const [loading,  setLoading]  = useState(!_cachedMissions);
 
   // Argo float data
   const argoRef = useRef(null);
@@ -116,16 +87,20 @@ export default function MyPage() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await getUserMissions(userId);
+        const { data: { user } } = await supabase.auth.getUser();
+        const uid = user?.id || location.state?.userId || null;
+        const data = await getUserMissions(uid);
         const list = data?.data || data?.missions || (Array.isArray(data) ? data : null);
-        setMissions(list?.filter(m => m.verified) || FALLBACK_MISSIONS);
+        const verified = list?.filter(m => m.verified) || [];
+        setMissions(verified);
+        try { localStorage.setItem('hymlMissions', JSON.stringify(verified)); } catch {}
       } catch {
-        setMissions(FALLBACK_MISSIONS);
+        if (!_cachedMissions) setMissions([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [userId]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch Argo float data
   useEffect(() => {
@@ -168,7 +143,7 @@ export default function MyPage() {
     return () => obs.disconnect();
   }, []);
 
-  const displayMissions = missions || FALLBACK_MISSIONS;
+  const displayMissions = missions || [];
   const totalPoints = displayMissions.reduce((sum, m) => sum + (m.points || 0), 0);
 
   return (
@@ -283,7 +258,6 @@ export default function MyPage() {
             </div>
           ) : displayMissions.length === 0 ? (
             <div style={styles.emptyState}>
-              <span style={{ fontSize: '48px' }}>🌊</span>
               <p style={styles.emptyText}>No verified missions yet.</p>
               <p style={styles.emptySub}>Attend an event and get verified to earn echo points.</p>
             </div>
@@ -477,7 +451,6 @@ export default function MyPage() {
 
           {/* Attribution */}
           <div style={styles.argoAttr}>
-            <span style={{ fontSize: '20px' }}>🌊</span>
             <p style={styles.argoAttrText}>
               Data from{' '}
               <strong style={{ color: '#90e0ef' }}>Scripps Institution of Oceanography</strong>{' '}

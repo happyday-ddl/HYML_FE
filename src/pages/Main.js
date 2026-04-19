@@ -320,6 +320,17 @@ export default function Main() {
     await supabase.auth.signOut();
   }
 
+  function goToDashboard() {
+    let savedGroup = 'Guardians';
+    let savedAnimalEmoji = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem('hymlSignup') || '{}');
+      if (saved.group) savedGroup = saved.group;
+      if (saved.animalEmoji) savedAnimalEmoji = saved.animalEmoji;
+    } catch {}
+    navigate('/dashboard', { state: { group: savedGroup, animalEmoji: savedAnimalEmoji } });
+  }
+
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You';
 
   return (
@@ -357,7 +368,8 @@ export default function Main() {
               <span style={{ ...styles.navLink, color: '#90e0ef', cursor: 'default' }}>
                 {displayName}
               </span>
-              <span style={styles.navLink} onClick={handleSignOut}>Sign Out</span>
+              <span style={styles.navLink} onClick={goToDashboard}>Dashboard</span>
+              <span style={styles.navLink} onClick={handleSignOut}>Log Out</span>
             </>
           ) : (
             <span style={styles.navLink} onClick={() => openModal('signin')}>Log In</span>
@@ -387,9 +399,20 @@ export default function Main() {
             Dive deep. Discover your ocean personality.<br />
             Join your group and protect what matters.
           </p>
-          <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
-            Take the Quiz &nbsp;→
-          </button>
+          {user ? (
+            <div style={styles.ctaBtnGroup}>
+              <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
+                Take the Quiz &nbsp;→
+              </button>
+              <button style={styles.ctaBtnSecondary} onClick={goToDashboard}>
+                Go to Dashboard &nbsp;→
+              </button>
+            </div>
+          ) : (
+            <button style={styles.ctaBtn} onClick={() => navigate('/quiz')}>
+              Take the Quiz &nbsp;→
+            </button>
+          )}
           <p style={styles.ctaNote}>16 questions · 2 minutes · Free</p>
         </div>
 
@@ -650,6 +673,17 @@ const styles = {
     fontSize: '16px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.5px',
     boxShadow: '0 8px 30px rgba(0,150,200,0.38)',
     animation: 'pulse 3s ease-in-out infinite', marginBottom: '14px',
+  },
+  ctaBtnGroup: {
+    display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '0px',
+  },
+  ctaBtnSecondary: {
+    display: 'block', padding: '15px 42px',
+    background: 'transparent',
+    color: '#48cae4', border: '1.5px solid rgba(72,202,228,0.45)', borderRadius: '50px',
+    fontSize: '15px', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.5px',
+    transition: 'border-color 0.2s, background 0.2s',
+    marginBottom: '14px',
   },
   ctaNote: { fontSize: '12px', color: 'rgba(180,210,240,0.45)', letterSpacing: '0.5px', marginTop: '12px' },
   heroRight: {

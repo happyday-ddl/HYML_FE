@@ -30,51 +30,7 @@ const GROUP_META = {
   },
 };
 
-const FALLBACK_LEADERBOARD = [
-  { group: "Guardians", points: 4280, members: 1247, rank: 1 },
-  { group: "Builders", points: 3950, members: 1089, rank: 2 },
-  { group: "Wanderers", points: 3670, members: 986, rank: 3 },
-  { group: "Hunters", points: 3210, members: 874, rank: 4 },
-];
 
-const FALLBACK_EVENTS = [
-  {
-    id: 1,
-    title: "Recycling in UC San Diego",
-    organizer: "San Diego Student Council",
-    date: "26/04/20",
-    daysLeft: 2,
-    type: "Recycling",
-    points: 50,
-  },
-  {
-    id: 2,
-    title: "Volunteer in La Jolla Coast",
-    organizer: "San Diego Student Council",
-    date: "26/04/21",
-    daysLeft: 3,
-    type: "Cleanup",
-    points: 80,
-  },
-  {
-    id: 3,
-    title: "Beach Survey — Mission Bay",
-    organizer: "Scripps Institution of Oceanography",
-    date: "26/04/23",
-    daysLeft: 5,
-    type: "Research",
-    points: 120,
-  },
-  {
-    id: 4,
-    title: "Coral Watch Training",
-    organizer: "CalCOFI Education Team",
-    date: "26/04/28",
-    daysLeft: 10,
-    type: "Education",
-    points: 60,
-  },
-];
 
 // ─── Ocean Animation Panel ────────────────────────────────────────────────────
 
@@ -1328,10 +1284,10 @@ export default function Dashboard() {
         lb?.data ||
           lb?.leaderboard ||
           (Array.isArray(lb) ? lb : null) ||
-          FALLBACK_LEADERBOARD,
+          [],
       );
     } catch {
-      setLeaderboard(FALLBACK_LEADERBOARD);
+      setLeaderboard([]);
     }
     try {
       const ev = await getEvents();
@@ -1339,10 +1295,10 @@ export default function Dashboard() {
         ev?.data ||
           ev?.events ||
           (Array.isArray(ev) ? ev : null) ||
-          FALLBACK_EVENTS,
+          [],
       );
     } catch {
-      setEvents(FALLBACK_EVENTS);
+      setEvents([]);
     }
   }
 
@@ -1385,8 +1341,8 @@ export default function Dashboard() {
   }
 
   const myMeta = GROUP_META[myGroup] || GROUP_META.Guardians;
-  const board = leaderboard || FALLBACK_LEADERBOARD;
-  const evList = events || FALLBACK_EVENTS;
+  const board = leaderboard || [];
+  const evList = events || [];
   const maxPts = Math.max(...board.map((g) => g.points || 0));
 
   function getMissionDetails(ev) {

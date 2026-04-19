@@ -832,7 +832,6 @@ export default function Result() {
 
         {/* ── Attribution ── */}
         <div style={s.attribution}>
-          <div style={s.attrLogo}>🌊</div>
           <p style={s.attrText}>
             Data from{" "}
             <strong style={{ color: "#90e0ef" }}>
